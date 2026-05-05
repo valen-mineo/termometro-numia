@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnóstico de Sucursal · numia</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --purple: #863DFF;
+    --purple-light: #F0E8FF;
+    --purple-dark: #5A1FCC;
+    --almost-black: #060A27;
+    --neon: #CBFF2E;
+    --bg: #F7F6FF;
+    --card: #ffffff;
+    --border: #E8E4F8;
+    --text: #060A27;
+    --text-muted: #6B6880;
+  }
+
+  html, body {
+    min-height: 100vh;
+    font-family: 'Hanken Grotesk', sans-serif;
+    background: linear-gradient(160deg, #F0E8FF 0%, #F7F6FF 40%, #E8FFF8 100%);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .container { width: 100%; max-width: 520px; }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 0 2rem;
+  }
+
+  .logo { font-size: 18px; font-weight: 700; color: var(--purple); letter-spacing: -0.02em; }
+  .step-indicator { font-size: 12px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.06em; }
+
+  .card {
+    background: var(--card);
+    border-radius: 24px;
+    border: 1px solid var(--border);
+    padding: 2.5rem;
+    box-shadow: 0 2px 40px rgba(134, 61, 255, 0.06);
+    animation: fadeUp 0.35s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--purple);
+    background: var(--purple-light);
+    padding: 5px 12px;
+    border-radius: 20px;
+    margin-bottom: 1.25rem;
+  }
+
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--purple); animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .form-title {
+    font-size: 26px; font-weight: 700; line-height: 1.25;
+    color: var(--almost-black); margin-bottom: 0.5rem; letter-spacing: -0.03em;
+  }
+  .form-title span { color: var(--purple); }
+  .form-sub { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 1.75rem; }
+
+  /* Loading state */
+  .hs-loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 1.5rem 0;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .hs-loading-spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--purple);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* HubSpot form overrides */
+  #hs-form-wrapper .hs-form { margin: 0; }
+  #hs-form-wrapper .hs-form-field { margin-bottom: 1rem !important; }
+
+  #hs-form-wrapper label {
+    display: block !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: var(--text-muted) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.07em !important;
+    margin-bottom: 6px !important;
+    font-family: 'Hanken Grotesk', sans-serif !important;
+  }
+
+  #hs-form-wrapper input[type="text"],
+  #hs-form-wrapper input[type="email"],
+  #hs-form-wrapper input[type="tel"] {
+    width: 100% !important;
+    padding: 13px 16px !important;
+    border: 1.5px solid var(--border) !important;
+    border-radius: 12px !important;
+    font-size: 15px !important;
+    font-family: 'Hanken Grotesk', sans-serif !important;
+    color: var(--text) !important;
+    background: white !important;
+    outline: none !important;
+    transition: border-color 0.15s, box-shadow 0.15s !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    box-shadow: none !important;
+  }
+
+  #hs-form-wrapper input[type="text"]:focus,
+  #hs-form-wrapper input[type="email"]:focus,
+  #hs-form-wrapper input[type="tel"]:focus {
+    border-color: var(--purple) !important;
+    box-shadow: 0 0 0 3px rgba(134, 61, 255, 0.1) !important;
+  }
+
+  #hs-form-wrapper input[type="submit"] {
+    width: 100% !important;
+    margin-top: 0.75rem !important;
+    padding: 15px 28px !important;
+    background: var(--purple) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 14px !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    font-family: 'Hanken Grotesk', sans-serif !important;
+    transition: background 0.15s !important;
+  }
+
+  #hs-form-wrapper input[type="submit"]:hover { background: var(--purple-dark) !important; }
+
+  #hs-form-wrapper .hs-error-msgs { list-style: none !important; margin-top: 4px !important; }
+  #hs-form-wrapper .hs-error-msgs li label {
+    font-size: 11px !important; color: #E24B4A !important;
+    text-transform: none !important; letter-spacing: 0 !important; font-weight: 500 !important;
+  }
+
+  #hs-form-wrapper .hs-richtext,
+  #hs-form-wrapper .hs-fieldtype-booleancheckbox { display: none !important; }
+
+  #hs-form-wrapper .submitted-message {
+    font-size: 16px; color: var(--purple);
+    font-weight: 600; text-align: center; padding: 2rem 0;
+  }
+
+  #hs-form-wrapper .legal-consent-container {
+    font-size: 11px !important; color: var(--text-muted) !important;
+    margin-top: 0.75rem !important; line-height: 1.5 !important;
+  }
+
+  #hs-form-wrapper .hs-form-field .input { margin-right: 0 !important; }
+
+  /* ── INTRO ── */
+  .intro-title {
+    font-size: 30px; font-weight: 700; line-height: 1.2;
+    color: var(--almost-black); margin-bottom: 1rem; letter-spacing: -0.03em;
+  }
+  .intro-title span { color: var(--purple); }
+  .intro-body { font-size: 15px; color: var(--text-muted); line-height: 1.65; margin-bottom: 2rem; }
+
+  .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 2rem; }
+  .pill { font-size: 12px; font-weight: 500; padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); color: var(--text-muted); background: var(--bg); }
+
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--purple); color: white; border: none;
+    border-radius: 14px; padding: 15px 28px; font-size: 15px;
+    font-weight: 600; cursor: pointer;
+    font-family: 'Hanken Grotesk', sans-serif; letter-spacing: -0.01em;
+    transition: background 0.15s;
+  }
+  .btn-primary:hover { background: var(--purple-dark); }
+
+  /* ── QUIZ ── */
+  .progress-track { height: 3px; background: var(--border); border-radius: 3px; margin-bottom: 2rem; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--purple); border-radius: 3px; transition: width 0.4s cubic-bezier(0.4,0,0.2,1); }
+
+  .q-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  .q-num { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--purple); }
+  .q-topic { font-size: 11px; font-weight: 500; color: var(--text-muted); background: var(--bg); padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); }
+
+  .q-text { font-size: 19px; font-weight: 600; line-height: 1.35; color: var(--almost-black); margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+  .q-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 1.75rem; line-height: 1.5; }
+
+  .options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 2rem; }
+  .opt { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 14px; cursor: pointer; transition: all 0.15s; background: white; }
+  .opt:hover { border-color: var(--purple); background: var(--purple-light); }
+  .opt.selected { border-color: var(--purple); background: var(--purple-light); }
+  .opt-radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; margin-top: 1px; transition: all 0.15s; display: flex; align-items: center; justify-content: center; }
+  .opt.selected .opt-radio { border-color: var(--purple); background: var(--purple); }
+  .opt-radio-dot { width: 8px; height: 8px; border-radius: 50%; background: white; opacity: 0; transition: opacity 0.15s; }
+  .opt.selected .opt-radio-dot { opacity: 1; }
+  .opt-label { font-size: 14px; line-height: 1.45; color: var(--text); }
+  .opt.selected .opt-label { color: var(--purple-dark); font-weight: 500; }
+
+  .nav-row { display: flex; justify-content: flex-end; }
+  .btn-next { display: inline-flex; align-items: center; gap: 8px; background: var(--purple); color: white; border: none; border-radius: 12px; padding: 13px 24px; font-size: 14px; font-weight: 600; cursor: pointer; opacity: 0.35; pointer-events: none; transition: all 0.15s; font-family: 'Hanken Grotesk', sans-serif; }
+  .btn-next.ready { opacity: 1; pointer-events: all; }
+  .btn-next.ready:hover { background: var(--purple-dark); }
+
+  /* ── RESULT ── */
+  .result-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1.5rem; }
+  .result-main { display: flex; gap: 1.5rem; align-items: flex-start; margin-bottom: 1.75rem; }
+  .thermo-col { flex-shrink: 0; }
+  .result-info { flex: 1; }
+  .result-level-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 20px; margin-bottom: 0.75rem; letter-spacing: 0.04em; }
+  .result-name { font-size: 20px; font-weight: 700; color: var(--almost-black); margin-bottom: 0.5rem; letter-spacing: -0.02em; line-height: 1.25; }
+  .result-score { font-size: 13px; color: var(--text-muted); margin-bottom: 0.75rem; }
+  .result-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+  .divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
+  .insights-title { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1rem; }
+  .insight-item { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 0.75rem; }
+  .insight-bullet { width: 20px; height: 20px; border-radius: 50%; background: var(--purple-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .insight-bullet svg { width: 10px; height: 10px; }
+  .insight-text { font-size: 14px; color: var(--text); line-height: 1.55; }
+
+  .cta-block { margin-top: 1.75rem; background: var(--almost-black); border-radius: 18px; padding: 1.5rem; position: relative; overflow: hidden; }
+  .cta-accent { position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; border-radius: 50%; background: var(--purple); opacity: 0.3; pointer-events: none; }
+  .cta-accent2 { position: absolute; bottom: -30px; left: 40px; width: 80px; height: 80px; border-radius: 50%; background: var(--neon); opacity: 0.15; pointer-events: none; }
+  .cta-title { font-size: 16px; font-weight: 700; color: white; margin-bottom: 0.4rem; letter-spacing: -0.02em; position: relative; }
+  .cta-sub { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.55; margin-bottom: 1.25rem; position: relative; }
+  .btn-cta { display: inline-flex; align-items: center; gap: 8px; background: var(--neon); color: var(--almost-black); border: none; border-radius: 10px; padding: 12px 22px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.15s; font-family: 'Hanken Grotesk', sans-serif; position: relative; }
+  .btn-cta:hover { background: #b8f000; transform: translateY(-1px); }
+
+  .restart-row { display: flex; justify-content: center; margin-top: 1.5rem; }
+  .btn-restart { background: transparent; border: 1px solid var(--border); border-radius: 10px; padding: 10px 22px; font-size: 13px; color: var(--text-muted); cursor: pointer; font-family: 'Hanken Grotesk', sans-serif; transition: all 0.15s; }
+  .btn-restart:hover { border-color: var(--purple); color: var(--purple); background: var(--purple-light); }
+
+  @media (max-width: 480px) {
+    .card { padding: 1.75rem 1.25rem; }
+    .intro-title { font-size: 24px; }
+    .result-main { flex-direction: column; align-items: center; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="topbar">
+    <div class="logo">numia</div>
+    <div class="step-indicator" id="step-ind"></div>
+  </div>
+
+  <div class="card" id="main-card">
+
+    <!-- PANTALLA 1: FORM -->
+    <div class="screen active" id="s-form">
+      <div class="eyebrow"><span class="dot"></span> Diagnóstico exclusivo</div>
+      <div class="form-title">Antes de empezar,<br><span>contanos quién sos</span></div>
+      <div class="form-sub">El diagnóstico es personalizado. Tus datos nos ayudan a hacer el seguimiento con el resultado de tu sucursal.</div>
+      <div id="hs-form-wrapper">
+        <div class="hs-loading">
+          <div class="hs-loading-spinner"></div>
+          Cargando formulario...
+        </div>
+      </div>
+    </div>
+
+    <!-- PANTALLA 2: INTRO -->
+    <div class="screen" id="s-intro">
+      <div class="eyebrow"><span class="dot"></span> Diagnóstico express</div>
+      <div class="intro-title">¿Qué tan inteligente es <span>tu sucursal</span> hoy?</div>
+      <div class="intro-body">Respondé 6 preguntas sobre tu operación y te mostramos exactamente en qué nivel está tu sucursal, y qué haría falta para subir.</div>
+      <div class="pill-row">
+        <span class="pill">6 preguntas</span>
+        <span class="pill">3 minutos</span>
+        <span class="pill">Resultado inmediato</span>
+      </div>
+      <button class="btn-primary" onclick="startQuiz()">Empezar diagnóstico →</button>
+    </div>
+
+    <!-- PANTALLA 3: QUIZ -->
+    <div class="screen" id="s-quiz">
+      <div class="progress-track"><div class="progress-fill" id="prog"></div></div>
+      <div class="q-meta">
+        <div class="q-num" id="q-num"></div>
+        <div class="q-topic" id="q-topic"></div>
+      </div>
+      <div class="q-text" id="q-text"></div>
+      <div class="q-sub" id="q-sub"></div>
+      <div class="options" id="opts"></div>
+      <div class="nav-row">
+        <button class="btn-next" id="next-btn" onclick="nextQ()">
+          <span id="next-label">Siguiente</span> →
+        </button>
+      </div>
+    </div>
+
+    <!-- PANTALLA 4: RESULTADO -->
+    <div class="screen" id="s-result">
+      <div class="result-eyebrow">Tu diagnóstico</div>
+      <div class="result-main">
+        <div class="thermo-col">
+          <svg class="thermo-svg" width="56" height="200" viewBox="0 0 56 200" id="thermo-svg"></svg>
+        </div>
+        <div class="result-info">
+          <div class="result-level-badge" id="res-badge"></div>
+          <div class="result-name" id="res-name"></div>
+          <div class="result-score" id="res-score"></div>
+          <div class="result-desc" id="res-desc"></div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="insights-title">Lo que encontramos en tu operación</div>
+      <div id="res-insights"></div>
+      <div class="cta-block">
+        <div class="cta-accent"></div>
+        <div class="cta-accent2"></div>
+        <div class="cta-title">Diagnóstico completo de tu sucursal</div>
+        <div class="cta-sub">45 minutos. Sin pitch. Los números reales de tu operación y qué haría falta para cambiarlos.</div>
+        <button class="btn-cta" onclick="agendarReunion()">Agendar sesión →</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="restart-row" id="restart-row" style="display:none">
+    <button class="btn-restart" onclick="restart()">↺ Nuevo diagnóstico</button>
+  </div>
+</div>
+
+<!-- HubSpot script cargado al final del body para mayor confiabilidad -->
+<script>
+function loadHubSpotForm() {
+  var script = document.createElement('script');
+  script.src = '//js.hsforms.net/forms/embed/v2.js';
+  script.charset = 'utf-8';
+  script.type = 'text/javascript';
+  script.onload = function() {
+    if (typeof hbspt !== 'undefined') {
+      hbspt.forms.create({
+        portalId: "1797020",
+        formId: "60571dd0-b50d-43a9-b3f5-21bf286f4746",
+        region: "na1",
+        target: "#hs-form-wrapper",
+        onFormSubmitted: function() {
+          setTimeout(function() {
+            show('s-intro');
+            document.getElementById('step-ind').textContent = '';
+          }, 900);
+        }
+      });
+    }
+  };
+  script.onerror = function() {
+    // Si no hay internet, mostrar form nativo de respaldo
+    document.getElementById('hs-form-wrapper').innerHTML = fallbackForm();
+  };
+  document.body.appendChild(script);
+}
+
+// Form de respaldo si no hay conexión
+function fallbackForm() {
+  return `
+    <form onsubmit="handleFallbackSubmit(event)">
+      <div style="margin-bottom:1rem">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">Nombre</label>
+        <input type="text" id="fb-nombre" required placeholder="Tu nombre" style="width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:'Hanken Grotesk',sans-serif;color:var(--text);outline:none">
+      </div>
+      <div style="margin-bottom:1rem">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">Apellido</label>
+        <input type="text" id="fb-apellido" required placeholder="Tu apellido" style="width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:'Hanken Grotesk',sans-serif;color:var(--text);outline:none">
+      </div>
+      <div style="margin-bottom:1rem">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">Empresa</label>
+        <input type="text" id="fb-empresa" required placeholder="Tu empresa" style="width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:'Hanken Grotesk',sans-serif;color:var(--text);outline:none">
+      </div>
+      <div style="margin-bottom:1rem">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">Email</label>
+        <input type="email" id="fb-email" required placeholder="tu@empresa.com" style="width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:'Hanken Grotesk',sans-serif;color:var(--text);outline:none">
+      </div>
+      <button type="submit" style="width:100%;margin-top:0.5rem;padding:15px;background:var(--purple);color:white;border:none;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer;font-family:'Hanken Grotesk',sans-serif">
+        Empezar diagnóstico →
+      </button>
+    </form>
+  `;
+}
+
+function handleFallbackSubmit(e) {
+  e.preventDefault();
+  show('s-intro');
+  document.getElementById('step-ind').textContent = '';
+}
+
+// Cargar HubSpot cuando el DOM esté listo
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadHubSpotForm);
+} else {
+  loadHubSpotForm();
+}
+</script>
+
+<script>
+// ── PREGUNTAS ──
+const questions = [
+  {
+    text: "¿Cómo gestionan hoy las filas y el flujo de atención?",
+    sub: "Pensá en el proceso más habitual en tus puntos de atención.",
+    topic: "Gestión de flujo",
+    opts: [
+      { label: "Sin sistema — los clientes esperan y se organizan solos", score: 0 },
+      { label: "Sistema básico de turnos, sin datos ni integración", score: 1 },
+      { label: "Sistema digital con reportes, pero sin acción en tiempo real", score: 2 },
+      { label: "Flujo orquestado con inteligencia y ajustes automáticos", score: 3 },
+    ]
+  },
+  {
+    text: "¿Qué información tiene el ejecutivo antes de atender a un cliente?",
+    sub: "Considerá la situación más común en el mostrador.",
+    topic: "Contexto del cliente",
+    opts: [
+      { label: "Ninguna — el ejecutivo descubre quién es durante la atención", score: 0 },
+      { label: "Nombre y número de turno, nada más", score: 1 },
+      { label: "Historial básico del cliente en el sistema", score: 2 },
+      { label: "Contexto completo: historial, propensión y sugerencia de producto", score: 3 },
+    ]
+  },
+  {
+    text: "¿Con qué frecuencia tomás decisiones basadas en datos de la sucursal?",
+    sub: "Pensá en decisiones como staffing, redistribución o cambios de flujo.",
+    topic: "Toma de decisiones",
+    opts: [
+      { label: "Raramente — las decisiones son por criterio o experiencia", score: 0 },
+      { label: "Con reportes mensuales o semanales", score: 1 },
+      { label: "Con reportes del día anterior o del mismo día", score: 2 },
+      { label: "En tiempo real, con alertas automáticas y dashboards en vivo", score: 3 },
+    ]
+  },
+  {
+    text: "¿Cómo medís la conversión comercial en los puntos de atención presencial?",
+    sub: "Considerá productos ofrecidos vs. productos cerrados en sucursal.",
+    topic: "Conversión comercial",
+    opts: [
+      { label: "No la medimos de forma sistemática", score: 0 },
+      { label: "Con reportes manuales o planillas del equipo", score: 1 },
+      { label: "Con métricas del sistema, pero sin atribución por ejecutivo", score: 2 },
+      { label: "Con datos por ejecutivo, sucursal y producto en tiempo real", score: 3 },
+    ]
+  },
+  {
+    text: "¿Podés derivar a un cliente entre canales físico y digital sin fricciones?",
+    sub: "Por ejemplo, de la sucursal a una app, o de un bot a un ejecutivo presencial.",
+    topic: "Integración de canales",
+    opts: [
+      { label: "No — los canales son completamente independientes", score: 0 },
+      { label: "Parcialmente, con procesos manuales de por medio", score: 1 },
+      { label: "En algunos casos, con integración básica entre sistemas", score: 2 },
+      { label: "Sí, con orquestación automática entre todos los canales", score: 3 },
+    ]
+  },
+  {
+    text: "¿Qué pasa con los datos de las conversaciones en tu sucursal?",
+    sub: "Pensá en todo lo que se dice y hace en el punto de atención.",
+    topic: "Captura de datos",
+    opts: [
+      { label: "Se pierden — no hay registro de lo que se habla", score: 0 },
+      { label: "El ejecutivo toma nota manualmente en el sistema", score: 1 },
+      { label: "Se registran algunas interacciones, no todas", score: 2 },
+      { label: "Se capturan y analizan automáticamente con IA", score: 3 },
+    ]
+  }
+];
+
+const levels = [
+  {
+    min: 0, max: 4,
+    name: "Sucursal básica", short: "Nivel 1 / 4",
+    desc: "La operación depende del criterio individual de cada empleado. No hay datos, no hay inteligencia, no hay capacidad de mejora sistemática.",
+    color: "#E24B4A", tagBg: "#FCEBEB", tagColor: "#A32D2D", tagText: "Punto de partida",
+    fillRatio: 0.1,
+    insights: [
+      "Sin sistema de gestión, cada punto de atención es un mundo aparte sin datos ni mejora posible.",
+      "El primer paso es ganar visibilidad: saber qué pasa en tus sucursales antes de intentar optimizarlo.",
+      "Organizaciones similares redujeron 35% sus costos operativos al implementar gestión básica con Manage."
+    ]
+  },
+  {
+    min: 5, max: 9,
+    name: "Sucursal con visibilidad parcial", short: "Nivel 2 / 4",
+    desc: "Hay sistemas básicos y algunos datos, pero llegan tarde y generan poco impacto. Las decisiones siguen siendo mayormente reactivas.",
+    color: "#EF9F27", tagBg: "#FAEEDA", tagColor: "#854F0B", tagText: "En desarrollo",
+    fillRatio: 0.35,
+    insights: [
+      "Tenés datos, pero llegan tarde o no generan acción. El gap está entre el reporte y la decisión.",
+      "Los ejecutivos trabajan sin contexto del cliente en el momento que más importa: antes de saludar.",
+      "Con inteligencia en tiempo real, la conversión comercial sube en promedio un 40%."
+    ]
+  },
+  {
+    min: 10, max: 14,
+    name: "Sucursal con inteligencia operativa", short: "Nivel 3 / 4",
+    desc: "Los datos fluyen y hay capacidad de acción. El gap principal está en la integración entre canales y la automatización de decisiones.",
+    color: "#1D9E75", tagBg: "#E1F5EE", tagColor: "#0F6E56", tagText: "Avanzada",
+    fillRatio: 0.65,
+    insights: [
+      "La base está bien construida. El salto que queda es conectar todos los canales y automatizar decisiones.",
+      "La oportunidad más grande está en los datos que hoy se pierden en cada conversación presencial.",
+      "Speech Analytics y Journey Builder pueden cerrar ese gap sin cambiar la infraestructura actual."
+    ]
+  },
+  {
+    min: 15, max: 18,
+    name: "Sucursal inteligente", short: "Nivel 4 / 4",
+    desc: "Cada interacción genera datos. Los flujos se ajustan solos. El ejecutivo tiene contexto antes de saludar. El mundo físico ya no es una caja negra.",
+    color: "#863DFF", tagBg: "#EEEDFE", tagColor: "#3C3489", tagText: "Nivel Numia",
+    fillRatio: 0.95,
+    insights: [
+      "Tu operación ya está en el nivel donde Numia profundiza: orquestación agéntica y mejora continua.",
+      "El foco ahora es maximizar cada interacción con IA y escalar lo que ya funciona.",
+      "Los clientes en este nivel ven aumentos de 25% en productividad del ejecutivo con AI Copilot."
+    ]
+  }
+];
+
+let current = 0, answers = [], selected = null;
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const card = document.getElementById('main-card');
+  card.style.animation = 'none';
+  setTimeout(() => { card.style.animation = 'fadeUp 0.3s ease both'; }, 10);
+}
+
+function startQuiz() {
+  current = 0; answers = []; selected = null;
+  document.getElementById('restart-row').style.display = 'none';
+  show('s-quiz');
+  renderQ();
+}
+
+function restart() {
+  show('s-form');
+  document.getElementById('step-ind').textContent = '';
+  document.getElementById('restart-row').style.display = 'none';
+}
+
+function renderQ() {
+  const q = questions[current];
+  const total = questions.length;
+  document.getElementById('q-num').textContent = `Pregunta ${current + 1} de ${total}`;
+  document.getElementById('q-topic').textContent = q.topic;
+  document.getElementById('q-text').textContent = q.text;
+  document.getElementById('q-sub').textContent = q.sub;
+  document.getElementById('step-ind').textContent = `${current + 1} / ${total}`;
+  document.getElementById('prog').style.width = `${(current / total) * 100}%`;
+  document.getElementById('next-label').textContent = current === total - 1 ? 'Ver resultado' : 'Siguiente';
+  document.getElementById('next-btn').classList.remove('ready');
+  selected = null;
+
+  const container = document.getElementById('opts');
+  container.innerHTML = '';
+  q.opts.forEach((o, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'opt';
+    btn.innerHTML = `<div class="opt-radio"><div class="opt-radio-dot"></div></div><div class="opt-label">${o.label}</div>`;
+    btn.onclick = () => selectOpt(i, btn);
+    container.appendChild(btn);
+  });
+}
+
+function selectOpt(i, el) {
+  document.querySelectorAll('.opt').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selected = i;
+  document.getElementById('next-btn').classList.add('ready');
+}
+
+function nextQ() {
+  if (selected === null) return;
+  answers.push(questions[current].opts[selected].score);
+  if (current < questions.length - 1) { current++; renderQ(); }
+  else showResult();
+}
+
+function showResult() {
+  const total = answers.reduce((a, b) => a + b, 0);
+  const max = questions.length * 3;
+  const pct = Math.round((total / max) * 100);
+  const level = levels.find(l => total >= l.min && total <= l.max) || levels[3];
+
+  document.getElementById('step-ind').textContent = 'Resultado';
+  document.getElementById('prog').style.width = '100%';
+
+  const badge = document.getElementById('res-badge');
+  badge.textContent = level.tagText;
+  badge.style.background = level.tagBg;
+  badge.style.color = level.tagColor;
+
+  document.getElementById('res-name').textContent = level.name;
+  document.getElementById('res-score').textContent = `${total} de ${max} puntos · ${pct}% · ${level.short}`;
+  document.getElementById('res-desc').textContent = level.desc;
+
+  document.getElementById('res-insights').innerHTML = level.insights.map(t => `
+    <div class="insight-item">
+      <div class="insight-bullet">
+        <svg viewBox="0 0 10 10" fill="none">
+          <path d="M2 5l2.5 2.5L8 3" stroke="#863DFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="insight-text">${t}</div>
+    </div>
+  `).join('');
+
+  drawThermo(level.fillRatio, level.color);
+  show('s-result');
+  document.getElementById('restart-row').style.display = 'flex';
+}
+
+function drawThermo(fillRatio, color) {
+  const svg = document.getElementById('thermo-svg');
+  const tubeH = 140, tubeW = 16, cx = 28;
+  const tubeTop = 10, tubeBot = tubeTop + tubeH;
+  const bulbR = 16, bulbCY = tubeBot + bulbR + 2;
+  const filledH = Math.round(tubeH * fillRatio);
+  const fillY = tubeBot - filledH;
+  const ticks = [
+    { ratio: 0, label: 'básica' },
+    { ratio: 0.33, label: 'parcial' },
+    { ratio: 0.66, label: 'inteligente' },
+    { ratio: 1, label: 'óptima' },
+  ];
+  svg.setAttribute('viewBox', `0 0 56 ${bulbCY + bulbR + 8}`);
+  svg.setAttribute('height', bulbCY + bulbR + 8);
+  svg.innerHTML = `
+    <rect x="${cx-tubeW/2}" y="${tubeTop}" width="${tubeW}" height="${tubeH}" rx="8" fill="#F0EEF8"/>
+    <rect x="${cx-tubeW/2}" y="${tubeTop}" width="${tubeW}" height="${tubeH}" rx="8" fill="none" stroke="#E0DCF0" stroke-width="1"/>
+    <clipPath id="tc"><rect x="${cx-tubeW/2}" y="${tubeTop}" width="${tubeW}" height="${tubeH}" rx="8"/></clipPath>
+    <rect x="${cx-tubeW/2}" y="${fillY}" width="${tubeW}" height="${filledH}" fill="${color}" clip-path="url(#tc)"/>
+    <circle cx="${cx}" cy="${bulbCY}" r="${bulbR}" fill="#F0EEF8" stroke="#E0DCF0" stroke-width="1"/>
+    <circle cx="${cx}" cy="${bulbCY}" r="${bulbR-3}" fill="${color}"/>
+    ${ticks.map(t => {
+      const y = tubeBot - Math.round(tubeH * t.ratio);
+      const active = fillRatio >= t.ratio - 0.05;
+      return `<line x1="${cx+tubeW/2}" y1="${y}" x2="${cx+tubeW/2+5}" y2="${y}" stroke="${active ? color : '#C8C4DC'}" stroke-width="1.5"/>
+              <text x="${cx+tubeW/2+8}" y="${y+4}" font-size="9" fill="${active ? color : '#A09CB8'}" font-family="Hanken Grotesk,sans-serif" font-weight="${active?'600':'400'}">${t.label}</text>`;
+    }).join('')}
+  `;
+}
+
+function agendarReunion() {
+  alert('Agendá una sesión en: hola@numia.com\n\nO escribinos a través de numia.com');
+}
+</script>
+</body>
+</html>
